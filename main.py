@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).with_name('.env'))
-DB_PATH = Path(__file__).with_name('tasks.db')
+DB_PATH = Path(os.getenv('DB_PATH', str(Path(__file__).with_name('tasks.db'))))
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title='Daylist API')
 CORS_ORIGINS = [origin.strip().rstrip('/') for origin in os.getenv(
     'CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173'
