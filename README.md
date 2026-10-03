@@ -48,3 +48,22 @@ docker run --rm -p 8000:8000 -v daylist-data:/data -e CORS_ORIGINS=http://127.0.
 ```
 
 The hosting platform may override `PORT`; ensure any attached disk is writable by container user UID `10001`. SQLite files remain excluded from Git. This preparation does not deploy the service or add authentication; anyone with access to a future public API can modify its shared tasks.
+
+## Vercel demonstration deployment
+
+Vercel detects `main.py` and runs its exported FastAPI `app` as one Python function. `vercel.json` selects FastAPI and sets the function timeout; `.python-version` selects Python 3.13. Vercel installs `requirements.txt` automatically. Do not set a Uvicorn start command or use the Dockerfile for this deployment. All existing `/api/tasks` routes and `/docs` keep their paths.
+
+When `VERCEL=1` (set by Vercel), SQLite defaults to `/tmp/daylist/tasks.db`. It is created automatically with its directory and table. Leave `DB_PATH` unset on Vercel. Local development continues using `tasks.db` beside `main.py`; an explicit `DB_PATH` still takes precedence.
+
+**Demo limitation:** temporary SQLite data may disappear when an instance is recycled or a deployment changes. Different instances do not share tasks, so consecutive requests can see different data when Vercel scales the service. This is a demonstration, not durable multi-user storage. SQLite and every task operation are retained. See [Vercel's SQLite guidance](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel).
+
+Deploy backend first:
+
+1. In Vercel, select **Add New → Project** and import `Mazicharles/daylist-backend` from GitHub, production branch `main`.
+2. Use repository root `./`, framework preset **FastAPI**, and default install/build/output settings. Do not override them with Docker or `python start.py`.
+3. Set production `CORS_ORIGINS` to the intended frontend origin, e.g. `https://daylist-frontend.vercel.app`. Leave `DB_PATH` unset and let Vercel supply `VERCEL` automatically.
+4. Deploy. Copy the actual production backend URL. Open `<backend-url>/docs` and `<backend-url>/api/tasks`; the latter should initially return `[]`.
+5. Under **Settings → Deployment Protection**, ensure production is publicly accessible, with no Vercel Authentication/password requirement. A protected backend will block browser API calls and CORS preflights.
+6. Deploy the frontend as described in its README. If its assigned domain differs from the intended origin, update backend `CORS_ORIGINS` to that exact origin (no trailing path) and redeploy the backend. Multiple origins are comma-separated; preview URLs must be explicitly listed if you test previews.
+
+No Vercel project or deployment is created by these repository changes.

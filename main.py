@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sqlite3
+import tempfile
 from contextlib import contextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -9,7 +10,16 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).with_name('.env'))
-DB_PATH = Path(os.getenv('DB_PATH', str(Path(__file__).with_name('tasks.db'))))
+def resolve_database_path():
+    configured = os.getenv('DB_PATH')
+    if configured:
+        return Path(configured)
+    if os.getenv('VERCEL') == '1':
+        return Path(tempfile.gettempdir()) / 'daylist' / 'tasks.db'
+    return Path(__file__).with_name('tasks.db')
+
+
+DB_PATH = resolve_database_path()
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title='Daylist API')
 CORS_ORIGINS = [origin.strip().rstrip('/') for origin in os.getenv(
